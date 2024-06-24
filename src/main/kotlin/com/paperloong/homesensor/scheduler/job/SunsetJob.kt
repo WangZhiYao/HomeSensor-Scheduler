@@ -1,9 +1,12 @@
 package com.paperloong.homesensor.scheduler.job
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.paperloong.homesensor.scheduler.constant.SensorType
 import com.paperloong.homesensor.scheduler.ext.logger
 import com.paperloong.homesensor.scheduler.model.LightSensorConfig
+import com.paperloong.homesensor.scheduler.model.Sleep
 import com.paperloong.homesensor.scheduler.model.isSuccess
+import com.paperloong.homesensor.scheduler.service.MqttService
 import com.paperloong.homesensor.scheduler.service.SensorConfigService
 import com.paperloong.homesensor.scheduler.service.SensorService
 import com.paperloong.homesensor.scheduler.service.SunriseSunsetService
@@ -26,6 +29,7 @@ import java.util.*
  */
 @Component
 class SunsetJob(
+    private val mqttService: MqttService,
     private val sensorService: SensorService,
     private val sensorConfigService: SensorConfigService,
     private val sunriseSunsetService: SunriseSunsetService,
@@ -35,26 +39,35 @@ class SunsetJob(
     private val logger by logger()
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    private val mapper = jacksonObjectMapper()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun executeInternal(context: JobExecutionContext) {
         runBlocking {
             sensorService.findSensorsByType(SensorType.LIGHT)
                 .flatMapConcat { sensors -> sensors.asFlow() }
-                .flatMapConcat { sensor -> sensorConfigService.findSensorConfigBySensorId(sensor.id) }
-                .flatMapConcat { sensorConfigs -> sensorConfigs.map { sensorConfig -> sensorConfig.config }.asFlow() }
-                .flatMapConcat { config ->
+                .flatMapConcat { sensor ->
+                    sensorConfigService.findSensorConfigBySensorId(sensor.id)
+                        .map { sensorConfigs -> sensor to sensorConfigs }
+                }
+                .flatMapConcat { (sensor, sensorConfigs) ->
+                    sensorConfigs.map { sensorConfig -> sensor to sensorConfig.config }.asFlow()
+                }
+                .flatMapConcat { (sensor, config) ->
                     val now = LocalDate.now()
                     val tomorrow = now.plusDays(1)
                     getSunriseSunset(config, tomorrow.format(dateFormatter))
+                        .map { result -> sensor to result }
                 }
                 .flowOn(Dispatchers.IO)
                 .catch {
                     logger.error("Failed to get sunrise sunset time", it)
                 }
-                .collect { result ->
+                .collect { (sensor, result) ->
                     logger.info(result.toString())
                     rescheduleJob(context, result.sunset)
+                    val sleep = Sleep((result.sunrise.time - Date().time) / 1000)
+                    mqttService.publish("sensor/${sensor.mac}/config", mapper.writeValueAsString(sleep))
                 }
         }
     }

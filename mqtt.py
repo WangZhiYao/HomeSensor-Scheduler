@@ -26,6 +26,7 @@ class MQTTClient:
         logging.info("Connecting to MQTT broker")
         try:
             self.client.connect(self.host, port=self.port)
+            self.client.loop()
         except Exception as e:
             logging.error(f"Error connecting to MQTT broker: {e}")
             raise

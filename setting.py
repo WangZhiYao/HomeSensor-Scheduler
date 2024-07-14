@@ -5,7 +5,7 @@ from pydantic_settings import (
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=('.env', '.debug.env'), env_file_encoding='utf-8')
+    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
 
     mqtt_host: str
     mqtt_port: int

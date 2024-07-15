@@ -1,8 +1,9 @@
 import logging
 from datetime import datetime
 
-from databasae import find_light_sensors, find_sensor_config
 from api import SunriseSunsetAPI
+from databasae import find_light_sensors, find_sensor_config
+from models import Event, EventType
 
 
 class LightSensorScheduler:
@@ -35,14 +36,14 @@ class LightSensorScheduler:
                 logging.info(f'Sunrise: {sunrise}, Sunset: {sunset}')
 
                 if sunrise < now < sunset:
-                    await self._on_sunrise(sensor, sensor_config)
+                    await self._on_sunrise(sensor, sensor_config, sunrise)
                     self._add_job(False, sensor, sensor_config, sunset)
                 else:
                     if sunrise > now:
                         self._add_job(True, sensor, sensor_config, sunrise)
                         self._add_job(False, sensor, sensor_config, sunset)
                     else:
-                        await self._on_sunset(sensor, sensor_config)
+                        await self._on_sunset(sensor, sensor_config, sunset)
             except Exception as e:
                 logging.error(f"Error updating sensor config: {e}")
 
@@ -76,7 +77,7 @@ class LightSensorScheduler:
                 self.scheduler.add_job(
                     self._on_sunrise,
                     trigger='date',
-                    kwargs={'sensor': sensor, 'sensor_config': sensor_config},
+                    kwargs={'sensor': sensor, 'sensor_config': sensor_config, 'date': date},
                     id=f'sensor_on_sunrise_{sensor.sensor_id}',
                     run_date=date
                 )
@@ -85,12 +86,12 @@ class LightSensorScheduler:
                 self.scheduler.add_job(
                     self._on_sunset,
                     trigger='date',
-                    kwargs={'sensor': sensor, 'sensor_config': sensor_config},
+                    kwargs={'sensor': sensor, 'sensor_config': sensor_config, 'date': date},
                     id=f'sensor_on_sunset_{sensor.sensor_id}',
                     run_date=date
                 )
 
-    async def _on_sunrise(self, sensor, sensor_config):
+    async def _on_sunrise(self, sensor, sensor_config, date):
         logging.info(f'Sensor {sensor.sensor_id} on sunrise')
         light_enable = sensor_config.config['light_enable']
         if not light_enable:
@@ -98,11 +99,15 @@ class LightSensorScheduler:
             await sensor_config.save()
         await self.mqtt_client.publish(
             topic=self.publish_topic,
-            payload=sensor_config.model_dump_json(exclude={'id': True, 'config': {'latitude', 'longitude'}}),
+            payload=Event(
+                type=EventType.SUNRISE,
+                sensor_id=sensor.sensor_id,
+                timestamp=int(date.timestamp())
+            ).model_dump_json(),
             retain=True
         )
 
-    async def _on_sunset(self, sensor, sensor_config):
+    async def _on_sunset(self, sensor, sensor_config, date):
         logging.info(f'Sensor {sensor.sensor_id} on sunset')
         light_enable = sensor_config.config['light_enable']
         if light_enable:
@@ -110,6 +115,10 @@ class LightSensorScheduler:
             await sensor_config.save()
         await self.mqtt_client.publish(
             topic=self.publish_topic,
-            payload=sensor_config.model_dump_json(exclude={'id': True, 'config': {'latitude', 'longitude'}}),
+            payload=Event(
+                type=EventType.SUNSET,
+                sensor_id=sensor.sensor_id,
+                timestamp=int(date.timestamp())
+            ).model_dump_json(),
             retain=True
         )

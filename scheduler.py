@@ -2,13 +2,13 @@ import logging
 from datetime import datetime
 
 from api import SunriseSunsetAPI
-from databasae import find_light_sensors, find_sensor_config
+from databasae import find_illuminance_sensors, find_sensor_config
 from models import Event, EventType
 
 
-class LightSensorScheduler:
+class IlluminanceSensorScheduler:
     """
-    A class to manage the scheduling of light sensor configuration updates.
+    A class to manage the scheduling of illuminance sensor configuration updates.
     """
 
     def __init__(self, scheduler, tz, mqtt_client, publish_topic):
@@ -18,8 +18,8 @@ class LightSensorScheduler:
         self.publish_topic = publish_topic
 
     async def startup(self):
-        sensors = await find_light_sensors()
-        logging.info(f"Light sensors found: {len(sensors)}")
+        sensors = await find_illuminance_sensors()
+        logging.info(f"Illuminance sensors found: {len(sensors)}")
         for sensor in sensors:
             logging.info(f"Processing sensor: {sensor}")
             sensor_config = await find_sensor_config(sensor)
@@ -50,8 +50,8 @@ class LightSensorScheduler:
         self.scheduler.add_job(self.on_schedular, trigger='cron', month='*', day='*', hour='0', minute='0', second='30')
 
     async def on_schedular(self):
-        sensors = await find_light_sensors()
-        logging.info(f"Light sensors found: {len(sensors)}")
+        sensors = await find_illuminance_sensors()
+        logging.info(f"Illuminance sensors found: {len(sensors)}")
         for sensor in sensors:
             logging.info(f"Processing sensor: {sensor}")
             sensor_config = await find_sensor_config(sensor)
@@ -93,9 +93,9 @@ class LightSensorScheduler:
 
     async def _on_sunrise(self, sensor, sensor_config, date):
         logging.info(f'Sensor {sensor.sensor_id} on sunrise')
-        light_enable = sensor_config.config['light_enable']
-        if not light_enable:
-            sensor_config.config['light_enable'] = True
+        collect_illuminance = sensor_config.config['collect_illuminance']
+        if not collect_illuminance:
+            sensor_config.config['collect_illuminance'] = True
             await sensor_config.save()
         await self.mqtt_client.publish(
             topic=self.publish_topic,
@@ -109,9 +109,9 @@ class LightSensorScheduler:
 
     async def _on_sunset(self, sensor, sensor_config, date):
         logging.info(f'Sensor {sensor.sensor_id} on sunset')
-        light_enable = sensor_config.config['light_enable']
-        if light_enable:
-            sensor_config.config['light_enable'] = False
+        collect_illuminance = sensor_config.config['collect_illuminance']
+        if collect_illuminance:
+            sensor_config.config['collect_illuminance'] = False
             await sensor_config.save()
         await self.mqtt_client.publish(
             topic=self.publish_topic,

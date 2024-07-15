@@ -11,7 +11,7 @@ class Location(StrEnum):
 
 class SensorType(StrEnum):
     THP = "thp"
-    LIGHT = "light"
+    ILLUMINANCE = "illuminance"
 
 
 class Sensor(Document):

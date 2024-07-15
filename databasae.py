@@ -17,9 +17,9 @@ async def init_database():
     logging.info("Database initialized successfully.")
 
 
-async def find_light_sensors():
-    logging.info("Finding light sensor")
-    sensors = await models.Sensor.find(In(models.Sensor.type, [models.SensorType.LIGHT])).to_list()
+async def find_illuminance_sensors():
+    logging.info("Finding illuminance sensor")
+    sensors = await models.Sensor.find(In(models.Sensor.type, [models.SensorType.ILLUMINANCE])).to_list()
     return sensors
 
 

@@ -39,6 +39,8 @@ class MQTTClient:
             retain: bool = False,
             properties: Properties | None = None
     ):
+        logging.info(
+            f"Publishing to MQTT broker: topic={topic} payload={payload} qos={qos} retain={retain} properties={properties}")
         try:
             result_code, mid = self.client.publish(
                 topic=topic,

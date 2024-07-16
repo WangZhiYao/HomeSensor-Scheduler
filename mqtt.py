@@ -39,12 +39,20 @@ class MQTTClient:
             retain: bool = False,
             properties: Properties | None = None
     ):
-        logging.info(
-            f"Publishing to MQTT broker: topic={topic} payload={payload} qos={qos} retain={retain} properties={properties}")
         try:
-            self.client.publish(topic=topic, payload=payload, qos=qos, retain=retain, properties=properties)
-            logging.info(f"Message published")
-            return True
+            result_code, mid = self.client.publish(
+                topic=topic,
+                payload=payload,
+                qos=qos,
+                retain=retain,
+                properties=properties
+            )
+            if result_code == mqtt.MQTT_ERR_SUCCESS:
+                logging.info(f"Published to topic: [{topic}]")
+                return True
+            else:
+                logging.error(f"Error publishing to topic: [{topic}] {result_code} {mid}")
+                return False
         except Exception as e:
             logging.error(f"Error publishing to MQTT broker: {e}")
             return False

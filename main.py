@@ -6,7 +6,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from databasae import init_database
 from mqtt import MQTTClient
-from scheduler import IlluminanceSensorScheduler
+from scheduler.sunrise_sunset_scheduler import SunriseSunsetScheduler
 from setting import settings
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -28,8 +28,8 @@ async def main():
 
     await mqtt_client.connect()
 
-    illuminance_sensor_scheduler = IlluminanceSensorScheduler(scheduler, tz, mqtt_client, settings.mqtt_publish_topic)
-    await illuminance_sensor_scheduler.startup()
+    sunrise_sunset_scheduler = SunriseSunsetScheduler(scheduler, tz, mqtt_client, settings.mqtt_publish_topic)
+    await sunrise_sunset_scheduler.startup()
 
     scheduler.start()
 

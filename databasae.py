@@ -4,7 +4,7 @@ from beanie import init_beanie
 from beanie.operators import In, Eq
 from motor.motor_asyncio import AsyncIOMotorClient
 
-import models
+from model.sensor import Sensor, SensorConfig, SensorType
 from setting import settings
 
 mongo_client = AsyncIOMotorClient(settings.mongo_url)
@@ -13,17 +13,17 @@ mongo_client = AsyncIOMotorClient(settings.mongo_url)
 async def init_database():
     logging.info("Initializing Database")
     await init_beanie(database=mongo_client.get_default_database(),
-                      document_models=[models.Sensor, models.SensorConfig])
+                      document_models=[Sensor, SensorConfig])
     logging.info("Database initialized successfully.")
 
 
 async def find_illuminance_sensors():
     logging.info("Finding illuminance sensor")
-    sensors = await models.Sensor.find(In(models.Sensor.type, [models.SensorType.ILLUMINANCE])).to_list()
+    sensors = await Sensor.find(In(Sensor.type, [SensorType.ILLUMINANCE])).to_list()
     return sensors
 
 
 async def find_sensor_config(sensor):
     logging.info("Finding sensor config")
-    sensor_config = await models.SensorConfig.find_one(Eq(models.SensorConfig.sensor_id, sensor.sensor_id))
+    sensor_config = await SensorConfig.find_one(Eq(SensorConfig.sensor_id, sensor.sensor_id))
     return sensor_config

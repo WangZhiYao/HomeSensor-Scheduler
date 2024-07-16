@@ -1,12 +1,12 @@
 import logging
 from datetime import datetime
 
-from api import SunriseSunsetAPI
+from api.sunrise_sunset import SunriseSunsetAPI
 from databasae import find_illuminance_sensors, find_sensor_config
-from models import Event, EventType
+from model.event import Event, EventType
 
 
-class IlluminanceSensorScheduler:
+class SunriseSunsetScheduler:
     """
     A class to manage the scheduling of illuminance sensor configuration updates.
     """
@@ -106,6 +106,7 @@ class IlluminanceSensorScheduler:
             ).model_dump_json(),
             retain=True
         )
+        self.scheduler.add_job()
 
     async def _on_sunset(self, sensor, sensor_config, date):
         logging.info(f'Sensor {sensor.sensor_id} on sunset')

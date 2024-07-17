@@ -106,7 +106,6 @@ class SunriseSunsetScheduler:
             ).model_dump_json(),
             retain=True
         )
-        self.scheduler.add_job()
 
     async def _on_sunset(self, sensor, sensor_config, date):
         logging.info(f'Sensor {sensor.sensor_id} on sunset')

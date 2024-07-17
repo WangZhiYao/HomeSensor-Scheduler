@@ -26,7 +26,7 @@ class MQTTClient:
         logging.info("Connecting to MQTT broker")
         try:
             self.client.connect(self.host, port=self.port)
-            self.client.loop()
+            self.client.loop_start()
         except Exception as e:
             logging.error(f"Error connecting to MQTT broker: {e}")
             raise
@@ -62,6 +62,7 @@ class MQTTClient:
     async def disconnect(self):
         logging.info("Disconnecting from MQTT broker")
         try:
+            self.client.loop_stop()
             self.client.disconnect()
             logging.info("Disconnected from MQTT broker")
         except Exception as e:

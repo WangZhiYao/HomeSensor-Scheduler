@@ -26,8 +26,6 @@ async def main():
         settings.mqtt_password
     )
 
-    await mqtt_client.connect()
-
     sunrise_sunset_scheduler = SunriseSunsetScheduler(scheduler, tz, mqtt_client, settings.mqtt_publish_topic)
     await sunrise_sunset_scheduler.startup()
 

@@ -97,14 +97,12 @@ class SunriseSunsetScheduler:
         if not collect_illuminance:
             sensor_config.config['collect_illuminance'] = True
             await sensor_config.save()
-        await self.mqtt_client.publish(
-            topic=self.publish_topic,
-            payload=Event(
+        await self.publish_event(
+            Event(
                 type=EventType.SUNRISE,
                 sensor_id=sensor.sensor_id,
                 timestamp=int(date.timestamp())
-            ).model_dump_json(),
-            retain=True
+            )
         )
 
     async def _on_sunset(self, sensor, sensor_config, date):
@@ -113,12 +111,19 @@ class SunriseSunsetScheduler:
         if collect_illuminance:
             sensor_config.config['collect_illuminance'] = False
             await sensor_config.save()
-        await self.mqtt_client.publish(
-            topic=self.publish_topic,
-            payload=Event(
+        await self.publish_event(
+            Event(
                 type=EventType.SUNSET,
                 sensor_id=sensor.sensor_id,
                 timestamp=int(date.timestamp())
-            ).model_dump_json(),
+            )
+        )
+
+    async def publish_event(self, event):
+        await self.mqtt_client.connect()
+        await self.mqtt_client.publish(
+            topic=self.publish_topic,
+            payload=event.model_dump_json(),
             retain=True
         )
+        await self.mqtt_client.disconnect()
